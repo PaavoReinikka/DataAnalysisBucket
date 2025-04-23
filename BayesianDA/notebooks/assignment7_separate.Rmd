@@ -1,0 +1,141 @@
+---
+title: "BDA - Assignment 7.3"
+author: "Paavo Reinikka"
+date: "31 10 2019"
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 1
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE, message=FALSE, fig.width = 8, fig.height = 6)
+```
+**Used libraries:**
+```{r}
+library(dplyr)
+library(ggplot2)
+library(rstan)
+library(gdata)
+library(bayesplot)
+library(aaltobda)
+data("factory")
+```
+
+```{r}
+options(mc.cores = 1)#parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+```{r , results=FALSE}
+write("// I'm writing STAN model from rstudio
+      
+      data {
+        int<lower=0> N;
+        int<lower=0> K;
+        int<lower=0, upper=K> x[N];
+        vector[N] y;
+      }
+      parameters {
+        vector[K] mu;
+        vector<lower=0>[K] sigma;
+      }
+      transformed parameters {
+        
+      }
+      model {
+        //sigma ~ scaled_inv_chi_square(K-1,8);
+        y ~ normal(mu[x], sigma[x]);
+      }
+      generated quantities {
+        real ypred_1;
+        real ypred_2;
+        real ypred_3;
+        real ypred_4;
+        real ypred_5;
+        real ypred_6;
+        ypred_1 = normal_rng(mu[1], sigma[1]);
+        ypred_2 = normal_rng(mu[2], sigma[2]);
+        ypred_3 = normal_rng(mu[3], sigma[3]);
+        ypred_4 = normal_rng(mu[4], sigma[4]);
+        ypred_5 = normal_rng(mu[5], sigma[5]);
+        ypred_6 = normal_rng(mu[6], sigma[6]);
+      }
+      
+      ",
+      
+      "stan_model7_separate.stan"
+      
+      )
+
+#compiles the code
+stanc("stan_model7_separate.stan")
+
+
+```
+
+```{r}
+
+scale_sigma <- sqrt(var(c(t(factory[,1:6])))/5)
+
+separate_data <-list(N = 6*nrow(factory),
+             K = 6,
+             x = rep(1:6, nrow(factory)), 
+             y = c(t(factory[,1:6])))
+
+
+stan_model <- "./stan_model7_separate.stan"
+
+```
+
+And here's a simple run:
+
+```{r }
+
+fit_separate <- stan(file = stan_model, data = separate_data, warmup = 200, iter = 1200)
+
+posterior_separate <- extract(fit_separate)
+m <- monitor(fit_separate)
+
+
+
+vals <- cbind(posterior_separate$mu[,1:6]) %>% as.data.frame() %>% setNames(1:6)
+mcmc_areas(vals)
+
+x <- c(posterior_separate$ypred_1,
+           posterior_separate$ypred_2,
+           posterior_separate$ypred_3,
+           posterior_separate$ypred_4,
+           posterior_separate$ypred_5,
+           posterior_separate$ypred_6)
+
+hist(sample(x,8000),breaks = 60)
+
+hist(posterior_separate$ypred[,6],breaks = 100)
+
+hist(sample(posterior_separate$ypred,8000), breaks = 100)
+
+x <- c(posterior_separate$mu[,1:6])
+ind <- sample(1:48000,8000)
+
+var(sample(x,8000))
+var(posterior_separate$ypred_6)
+
+mcmc_hist(vals)
+mcmc_hist(cbind(x,vals$`6`) %>% as.data.frame())
+hist(x[ind], breaks = 25)
+hist(posterior_)
+```
+
+
+```{r}
+hist(posterior_separate$ypred)
+
+```
+
+
+
+
+
+

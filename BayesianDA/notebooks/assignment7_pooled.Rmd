@@ -1,0 +1,85 @@
+---
+title: "BDA - Assignment 7.2"
+author: "Paavo Reinikka"
+date: "31 10 2019"
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 1
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE, message=FALSE, fig.width = 8, fig.height = 6)
+```
+**Used libraries:**
+```{r}
+library(dplyr)
+library(ggplot2)
+library(rstan)
+library(gdata)
+library(bayesplot)
+library(aaltobda)
+data("factory")
+```
+
+```{r}
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+```{r , results=FALSE}
+write("// I'm writing STAN model from rstudio
+      
+      data {
+        int<lower=0> N;
+        vector[N] y;
+      }
+      parameters {
+        real mu;
+        real<lower=0> sigma;
+      }
+      transformed parameters {
+        
+      }
+      model {
+        y ~ normal(mu, sigma);
+      }
+      generated quantities {
+        real ypred;
+        ypred = normal_rng(mu, sigma);
+      }
+      
+      ",
+      
+      "stan_model7_pooled.stan"
+      
+      )
+
+#compiles the code
+stanc("stan_model7_pooled.stan")
+```
+
+```{r}
+pool <- c(factory %>% unlist()) %>% as.vector()
+stan_data <- list(N=length(pool), y=pool)
+
+stan_model <- "./stan_model7_pooled.stan"
+
+```
+
+And here's a simple run:
+
+```{r , results=FALSE}
+fit <- stan(file = stan_model, data = stan_data, warmup = 500, iter = 2500, init = 'random')
+posterior_pooled <- extract(fit)
+monitor(fit)
+hist(posterior_pooled$mu)
+plot(posterior_pooled$mu, posterior_pooled$sigma)
+```
+```{r}
+mean(posterior_pooled$ypred)
+mean(posterior_pooled$mu)
+
+```
+

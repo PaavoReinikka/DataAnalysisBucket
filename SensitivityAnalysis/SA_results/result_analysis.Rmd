@@ -1,0 +1,153 @@
+---
+title: Comparison of ranks compiled from S1 and ST sobol indices and coefficients
+  (COEF) of corresponding elastinet models
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r echo=FALSE,include=FALSE}
+library(tidyverse)
+library(reshape2)
+library(tidyselect)
+
+blue <- "#27647B"
+yellow <- "#E69F00"
+red <- "#DA5526"
+```
+
+
+```{r echo=FALSE,include=FALSE}
+min_coef <- read_csv("compiled_ranks/Lambda_min_norm_COEF_RANKS.csv")
+min_s1 <- read_csv("compiled_ranks/Lambda_min_S1_RANKS.csv")
+min_st <- read_csv("compiled_ranks/Lambda_min_ST_RANKS.csv")
+se_coef <- read_csv("compiled_ranks/Lambda_1se_norm_COEF_RANKS.csv")
+se_s1 <- read_csv("compiled_ranks/Lambda_1se_S1_RANKS.csv")
+se_st <- read_csv("compiled_ranks/Lambda_1se_ST_RANKS.csv")
+
+ranks <- min_coef %>% mutate(lambda = "min", method = "coef") %>% 
+  bind_rows(  min_s1 %>% mutate(lambda = "min", method = "s1") ) %>% 
+  bind_rows(  min_st %>% mutate(lambda = "min", method = "st") ) %>% 
+  bind_rows(  se_coef %>% mutate(lambda = "1se", method = "coef") ) %>%
+  bind_rows(  se_s1 %>% mutate(lambda = "1se", method = "s1") ) %>%
+  bind_rows(  se_st %>% mutate(lambda = "1se", method = "st") )
+
+ranks_m <- ranks %>% melt(id.vars = c("Variable","lambda","method")) %>% rename(alpha = variable, rank = value) %>% 
+  mutate(alpha = ifelse(alpha == "a0",0.0, ifelse(alpha == "a025", 0.25, ifelse(alpha == "a05", 0.5, ifelse( alpha == "a075",0.75,1) ) )  ))
+```
+
+
+#### Examination of absolute ranks
+
+Visualisation of ranks comparison between pairs of S1 and COEF, as well as ST and COEF.
+
+Dataset overview
+```{r compile_rank_dataset, echo=FALSE}
+ranks_m
+```
+
+
+
+Examination of differences of ranks between S1 and COEF, by visualising their absolute ranks.
+```{r fig.asp=0.6, fig.width=8, echo=FALSE}
+
+ranks_m %>% filter(method %in% c("coef","s1")) %>% ggplot(aes(Variable,rank, group=method, fill=method)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.65) +
+  facet_grid(alpha~lambda) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(vjust = 1, angle = 90)) + 
+  scale_fill_manual(values=c(blue,yellow))
+
+```
+
+Examination of differences of ranks between ST and COEF, by visualising their absolute ranks.
+```{r fig.asp=0.6, fig.width=8, echo=FALSE}
+
+ranks_m %>% filter(method %in% c("coef","st")) %>% ggplot(aes(Variable,rank, group=method, fill=method)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.65) +
+  facet_grid(alpha~lambda) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(vjust = 1, angle = 90)) + 
+  scale_fill_manual(values=c(blue,yellow))
+
+```
+
+
+#### Examination of rank differences
+Following part compares differences in ranks compiled by S1,ST and COEF methods. Coparison is done between following pairs: S1-COEF and ST-COEF.
+
+
+Dataset overview
+```{r compile_rank_diff_dataset, echo=FALSE, warning=FALSE}
+first_sc_ds <- ranks_m %>% dcast(Variable + lambda ~ method + alpha, value.var = "rank") %>% 
+  mutate(
+    diff_s1c_0 = s1_0 - coef_0,
+    diff_s1c_0.25 = s1_0.25 - coef_0.25,
+    diff_s1c_0.5 = s1_0.5 - coef_0.5,
+    diff_s1c_0.75 = s1_0.75 - coef_0.75,
+    diff_s1c_1 = s1_1 - coef_1,
+    diff_stc_0 = st_0 - coef_0,
+    diff_stc_0.25 = st_0.25 - coef_0.25,
+    diff_stc_0.5 = st_0.5 - coef_0.5,
+    diff_stc_0.75 = st_0.75 - coef_0.75,
+    diff_stc_1 = st_1 - coef_1
+    ) %>% 
+  select(Variable,lambda, starts_with("diff")) %>% 
+  melt(id.vars = c("Variable","lambda")) %>% 
+  separate(variable,sep = "_", into = c("diff","combination","alpha")) %>% 
+  select(-diff)
+  
+
+first_sc_ds
+
+```
+
+
+Comparison of differences between S1 and COEF ranks
+```{r fig.asp=0.6, fig.width=8, echo=FALSE}
+
+first_sc_ds %>% filter(combination == "s1c") %>% ggplot(aes(Variable,value, fill=alpha)) +
+  geom_bar(stat = "identity") +
+  facet_grid(alpha~lambda) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(vjust = 1, angle = 90))
+
+```
+
+Comparison of differences between ST and COEF ranks
+```{r fig.asp=0.6, fig.width=8, echo=FALSE}
+
+first_sc_ds %>% filter(combination == "stc") %>% ggplot(aes(Variable,value, fill=alpha)) +
+  geom_bar(stat = "identity") +
+  facet_grid(alpha~lambda) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(vjust = 1, angle = 90))
+
+```
+
+
+
+#### Examination of rank variance along elasticnet method (alpha)
+
+Dataset overview
+```{r compile_rank_variance_dataset, echo=FALSE}
+ranks_m
+```
+
+Visualization of variance along alpha path, with ranks estimation based on S1,ST and COEF.
+```{r fig.asp=0.6, fig.width=8, echo=FALSE}
+ranks_m %>% ggplot(aes(Variable, rank, color=method)) +
+  geom_boxplot() +
+  #geom_bar(stat = "identity", position = position_dodge(), width = 0.65) +
+  facet_grid(method~lambda) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(vjust = 1, angle = 90)) + 
+  scale_color_manual(values=c(blue,yellow,red))
+
+```
+
+
+
+

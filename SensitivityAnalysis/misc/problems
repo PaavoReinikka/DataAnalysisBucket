@@ -1,0 +1,13 @@
+For linear models with independent predictors, sigma normalized coefficients are a sufficient indicators for sensitivity/importance. In more general sense wrt. variance based SA, if the input space can be sampled from marginal distributions in a consistent and properly randomized way, the effects of potentially correlated predictors should not cause any problems. This is of course contingent on having been able to construct feasible marginal distributions.
+
+SAmpling:
+Use of large sample sizes for SA decreases the likely correlations for predictors in general. However, the sampling scheme I have used here is quite strongly biased towards the training data. For most of the variables this is unlikely to cause problems, but some of the predictors are highly sparse and therefore those dimensions produce dense samples; this may show up in SA, if those predictors correlate strongly with other more spread-out variables.
+  Possibly self-contradictory points of parameter space were not controlled in any direct way, but the sampling scheme should minimize  this risk: A set of quantiles were picked from training data, per dimension, and the sampling was made in accordance with those quantiles. Details of the sampling implementations can be found in package 'sensitivity' and function 'fast99'.
+
+=> Reasoning behind the chosen sampling:
+Due to the relatively large number of potential predictors and their varying nature, it was not feasible to build the marginal distributions based on domain knowledge. The data that was availabla for SA was in any case sufficient in size to give a good general image of the range of possible values, and as such represented the "best available" information. 
+
+Limitation:
+The SA performed on the oat data varied only predictors (input-output SA), and only after model had been built; i.e., effects of variations/perturbations in the training data on the modelling (building of the model) was not observed. Also, modelling assumptions were not varied directly, as a source of output variation. However, some insights to the effects of the main elnet parameters were acquired indirectly by performing input-output SA along different values of alpha, lambda.
+
+A model is characterized by elnet parameters alpha el.[0,0.25,0.50,0.75,1], lambda el.[min, 1se], where min corresponds to lambda value minimizing cv error, and 1se corresponds to max. within 1 se from minimum cv error. 

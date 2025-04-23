@@ -1,0 +1,156 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Sensitivity Analysis on oat data (ELY keskus)},
+            pdfauthor={Paavo Reinikka},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Sensitivity Analysis on oat data (ELY keskus)}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Paavo Reinikka}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{27 August 2019}
+
+
+\begin{document}
+\maketitle
+
+\subsection{Setup for SA}\label{setup-for-sa}
+
+Sensitivity analysis was performed on full oat data, and the focus of
+the analysis was on the input-output sensitivity of various elnet models
+(as defined and implemented in the r package \textbf{glmnet}). The
+models were differentiated on two axis: \emph{alpha} being the tuning
+parameter for the continuum Ridge - Lasso, and \emph{lambda} being the
+parameter deciding the amount of penalization (regularization). The
+parameters were defined on a discrete grid: \(\lambda \cup \alpha\) st.
+\(\lambda \in [min, 1se]\) and \(\alpha \in [0,0.25,0.5,0.75,1]\), where
+\emph{lambda} value min corresponds to model with minimum cv error (per
+\emph{alpha}) and value 1se corresponds to maximum cv error
+\emph{within} 1 se from that minimum. Different model runs are therefore
+consistent not by the exact values of lambda, but rather the heuristic
+for choosing the lambda. This affords us some added aggregation over the
+data.
+
+The SA performed on the oat data varied only predictors (input-output
+SA), and only after model had been built; i.e., effects of
+variations/perturbations in the training data on the modelling (building
+of the model) were not observed. Also, modelling assumptions were not
+varied directly, as a source of output variation. However, some insights
+to the effects of the main elnet parameters were acquired indirectly by
+performing input-output SA along different values of alpha, lambda.
+
+\subsection{Used measures and their
+limitations}\label{used-measures-and-their-limitations}
+
+In the SA literature there are many different sensitivity measures, both
+local and global, with varying degrees of constraints. Use of
+\emph{sigma-normalized coefficients} (Saltelli et.al.{[}1{]}) are
+considered a sufficient measure when model is known to be linear and
+predictors un-correlated. In a more general setting however, when a
+certain level of agnostisism is preferred with regards to the model and
+the input space (e.g., ML setting), MC sampling coupled with either
+variance or enthropy based measures are preferred. SA here is performed
+using r package \emph{sensitivity} and as sufficient measures Sobol's
+1st and total order indices{[}2{]}.
+
+For model y = f(\(\sf{x_{1}},..., x_{p}\)) where y is a scalar
+(`production') and x's are the columns of the input matrix, the 1st
+order sensitivity index, corresponding to \emph{main effects} of
+\(\sf{x_{i}}\), is defined:
+\[\sf{S_{i}}=\dfrac{V_{x_{i}}(E_{X_{-i}}(y|x_{i}))}{V(y)}\] where the
+inner (\(\sf{x_{i}}\) conditional) expectation is taken over all other
+predictors, and the outer variance over \(\sf{x_{i}}\). Similarly the
+total order index, which corresponds to all other effects of
+\(\sf{x_{i}}\) (through it's interactions with other variables) can be
+defined:
+\[\sf{ST_{i}}=\dfrac{E_{X_{-i}}(V_{x_{i}}(y|X_{-i}))}{V(y)}=1-\dfrac{V_{X_{-i}}(E_{x_{i}}(y|X_{-i}))}{V(y)}\]
+
+These indices are often presented as for independent input
+distributions, when the property \(0\leq\sf{S_{i}}\leq\sf{ST_{i}}\leq1\)
+holds.
+
+\subsection{Relevant literature}\label{relevant-literature}
+
+{[}1{]}Main source by Saltelli et. al.
+\url{http://www.andreasaltelli.eu/file/repository/A_Saltelli_Marco_Ratto_Terry_Andres_Francesca_Campolongo_Jessica_Cariboni_Debora_Gatelli_Michaela_Saisana_Stefano_Tarantola_Global_Sensitivity_Analysis_The_Primer_Wiley_Interscience_2008_.pdf}
+
+{[}2{]}I M Sobol'. Sensitivity estimates for nonlinear mathematical
+models.Mathematical Modelling andComputational Experiments, 1:407--414,
+1993.
+
+
+\end{document}

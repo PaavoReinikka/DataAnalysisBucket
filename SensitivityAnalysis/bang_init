@@ -1,0 +1,2 @@
+#!/bin/bash
+Rscript --vanilla ./SA_script.R init
